@@ -27,16 +27,16 @@ function init(){
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
 
-  // Add lighting for the 3D models - reduced intensity to minimize reflections
-  const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+  // Add minimal lighting only for 3D models that need it (like sun)
+  const ambientLight = new THREE.AmbientLight(0x404040, 0.1); // Reduced from 0.3 to 0.1
   scene.add(ambientLight);
   
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5); // Reduced from 0.8 to 0.5
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.2); // Reduced from 0.5 to 0.2
   directionalLight.position.set(100, 100, 50);
   scene.add(directionalLight);
 
-  // Add a secondary light for better model visibility - reduced intensity
-  const secondaryLight = new THREE.DirectionalLight(0x6699ff, 0.2); // Reduced from 0.4 to 0.2
+  // Add a very dim secondary light
+  const secondaryLight = new THREE.DirectionalLight(0x6699ff, 0.05); // Reduced from 0.2 to 0.05
   secondaryLight.position.set(-100, -100, -50);
   scene.add(secondaryLight);
 
@@ -44,9 +44,9 @@ function init(){
   composer.addPass(new THREE.RenderPass(scene,camera));
 
   let bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.5,0.4,0.85);
-  bloom.threshold = 0.3; // Increased from 0 to be more selective - only bright objects glow
-  bloom.strength = 2;
-  bloom.radius = 0.5;
+  bloom.threshold = 0.4; // Reduced for more dramatic sun glow
+  bloom.strength = 2.5; // Reduced from 3.5 to 2.5 for less intense bloom
+  bloom.radius = 0.7; // Slightly reduced radius
   composer.addPass(bloom);
 
   createExplosion();
@@ -74,12 +74,12 @@ function createExplosion(){
   geo.setAttribute('velocity', new THREE.BufferAttribute(vel,3));
 
   const material = new THREE.PointsMaterial({
-    size: 2.5,
+    size: 4.0, // Increased from 2.5 to 4.0 for bigger particles
     map: generateSprite(),
-    color: 0xffffff,
+    color: 0xffffff, // Bright white color
     blending: THREE.AdditiveBlending,
     transparent: true,
-    opacity: 1,
+    opacity: 0.8, // Reduced from 1.5 to 0.8 for less brightness
     depthWrite: false
   });
 
@@ -111,16 +111,16 @@ function createGalaxy(){
   }
   geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
   const mat = new THREE.PointsMaterial({
-    size: 1.5,
+    size: 2.5, // Increased from 1.5 to 2.5 for bigger galaxy particles
     depthTest: false,
     blending: THREE.AdditiveBlending,
     transparent: true,
     opacity: 0, // Start invisible for fade-in effect
     vertexColors: false,
-    color: 0xffffff
+    color: 0xffffff // Bright white color
   });
   galaxyParticles = new THREE.Points(geo, mat);
-  galaxyParticles.material.userData.targetOpacity = 0.6; // Store target opacity
+  galaxyParticles.material.userData.targetOpacity = 0.6; // Reduced from 1.0 to 0.6 for less brightness
   scene.add(galaxyParticles);
 }
 
@@ -266,9 +266,9 @@ function loadSunModel(){
       // Enhance sun materials for glowing effect and start invisible
       sunModel.traverse((child) => {
         if (child.isMesh) {
-          // Make the sun glow much stronger like original
-          child.material.emissive = new THREE.Color(0xff6600);
-          child.material.emissiveIntensity = 1.5; // Increased from 0.5 to 1.5 for stronger glow
+          // Make the sun glow with reduced brightness
+          child.material.emissive = new THREE.Color(0xff8800); // Slightly less bright orange
+          child.material.emissiveIntensity = 2.0; // Reduced from 3.0 to 2.0 for less brightness
           
           // If it has a transmission map, make it slightly transparent
           if (child.material.map) {
@@ -368,20 +368,21 @@ function loadPlanets(){
       color: 0xd8ca9d,
       folder: 'jupiter'
     },
-    saturn: { 
-      distance: 1800, // Sixth orbit
-      angle: 5 * Math.PI / 4, // 225 degrees offset
-      size: 5.0, 
-      color: 0xfad5a5,
-      folder: 'saturn (1)'
-    },
-    uranus: { 
-      distance: 2500, // Seventh orbit
-      angle: 3 * Math.PI / 2, // 270 degrees offset
-      size: 2.5, 
-      color: 0x4fd0e3,
-      folder: 'uranus'
-    },
+    // TEMPORARILY DISABLED - Missing large .bin files
+    // saturn: { 
+    //   distance: 1800, // Sixth orbit
+    //   angle: 5 * Math.PI / 4, // 225 degrees offset
+    //   size: 5.0, 
+    //   color: 0xfad5a5,
+    //   folder: 'saturn (1)'
+    // },
+    // uranus: { 
+    //   distance: 2500, // Seventh orbit
+    //   angle: 3 * Math.PI / 2, // 270 degrees offset
+    //   size: 2.5, 
+    //   color: 0x4fd0e3,
+    //   folder: 'uranus'
+    // },
     neptune: { 
       distance: 3200, // Eighth orbit
       angle: 7 * Math.PI / 4, // 315 degrees offset
@@ -389,27 +390,28 @@ function loadPlanets(){
       color: 0x4b70dd,
       folder: 'neptune'
     },
-    saturn: { 
-      distance: 1800, // Sixth orbit
-      angle: 5 * Math.PI / 4, // 225 degrees offset
-      size: 0.08, // 10 times smaller than 0.8 (0.8 / 10 = 0.08)
-      color: 0xfad5a5,
-      folder: 'saturn (1)'
-    },
-    uranus: { 
-      distance: 2500, // Seventh orbit
-      angle: 3 * Math.PI / 2, // 270 degrees offset
-      size: 0.8, // Much smaller to account for ring system
-      color: 0x4fd0e3,
-      folder: 'uranus'
-    },
-    neptune: { 
-      distance: 3200, // Eighth orbit
-      angle: 7 * Math.PI / 4, // 315 degrees offset
-      size: 2.0, // Same size as all others
-      color: 0x4b70dd,
-      folder: 'neptune'
-    },
+    // DUPLICATE ENTRIES REMOVED
+    // saturn: { 
+    //   distance: 1800, // Sixth orbit
+    //   angle: 5 * Math.PI / 4, // 225 degrees offset
+    //   size: 0.08, // 10 times smaller than 0.8 (0.8 / 10 = 0.08)
+    //   color: 0xfad5a5,
+    //   folder: 'saturn (1)'
+    // },
+    // uranus: { 
+    //   distance: 2500, // Seventh orbit
+    //   angle: 3 * Math.PI / 2, // 270 degrees offset
+    //   size: 0.8, // Much smaller to account for ring system
+    //   color: 0x4fd0e3,
+    //   folder: 'uranus'
+    // },
+    // neptune: { 
+    //   distance: 3200, // Eighth orbit
+    //   angle: 7 * Math.PI / 4, // 315 degrees offset
+    //   size: 2.0, // Same size as all others
+    //   color: 0x4b70dd,
+    //   folder: 'neptune'
+    // },
     pluto: { 
       distance: 4000, // Outer orbit - dwarf planet
       angle: 2 * Math.PI / 3, // Different angle
@@ -440,23 +442,37 @@ function loadPlanets(){
         // Enhance planet materials and start invisible
         planetModel.traverse((child) => {
           if (child.isMesh) {
-            // Minimal emissive lighting for planets (much less glow)
-            child.material.emissive = new THREE.Color(planet.color);
-            child.material.emissiveIntensity = 0.02; // Reduced from 0.1 to 0.02
-            
-            // Remove reflections for Earth and Jupiter
-            if (planetName === 'earth' || planetName === 'jupiter') {
-              child.material.metalness = 0; // No metallic reflection
-              child.material.roughness = 1; // Maximum roughness to reduce shine
-              if (child.material.envMap) {
-                child.material.envMap = null; // Remove environment map reflections
-              }
+            // Completely remove ALL emissive properties and maps
+            child.material.emissive = new THREE.Color(0x000000); // No emissive glow
+            child.material.emissiveIntensity = 0; // No emissive intensity
+            if (child.material.emissiveMap) {
+              child.material.emissiveMap = null; // Remove emissive texture map completely
             }
             
-            // Start invisible for fade-in effect
-            child.material.transparent = true;
-            child.material.opacity = 0;
-            child.material.userData.targetOpacity = 1.0;
+            // Remove all reflections and lighting responses
+            child.material.metalness = 0; // No metallic reflection
+            child.material.roughness = 1; // Maximum roughness to eliminate shine
+            if (child.material.envMap) {
+              child.material.envMap = null; // Remove environment map reflections
+            }
+            
+            // Make material unaffected by scene lighting
+            if (child.material.type === 'MeshStandardMaterial' || child.material.type === 'MeshPhysicalMaterial') {
+              // Convert to basic material to remove lighting effects
+              const basicMaterial = new THREE.MeshBasicMaterial({
+                map: child.material.map,
+                color: child.material.color || new THREE.Color(planet.color),
+                transparent: true,
+                opacity: 0
+              });
+              basicMaterial.userData.targetOpacity = 1.0;
+              child.material = basicMaterial;
+            } else {
+              // For other material types, just ensure no lighting response
+              child.material.transparent = true;
+              child.material.opacity = 0;
+              child.material.userData.targetOpacity = 1.0;
+            }
           }
         });
         
@@ -553,19 +569,20 @@ function createNavigationUI(){
     animateCamera(new THREE.Vector3(jupiterX + 300, 200, jupiterZ + 300), new THREE.Vector3(jupiterX, 0, jupiterZ));
   });
   
-  // Saturn button
-  const saturnBtn = createNavButton('🪐 Saturn', () => {
-    const saturnX = Math.cos(5 * Math.PI / 4) * 1800;
-    const saturnZ = Math.sin(5 * Math.PI / 4) * 1800 - 200;
-    animateCamera(new THREE.Vector3(saturnX + 400, 250, saturnZ + 400), new THREE.Vector3(saturnX, 0, saturnZ));
-  });
+  // TEMPORARILY DISABLED - Saturn and Uranus models missing
+  // // Saturn button
+  // const saturnBtn = createNavButton('🪐 Saturn', () => {
+  //   const saturnX = Math.cos(5 * Math.PI / 4) * 1800;
+  //   const saturnZ = Math.sin(5 * Math.PI / 4) * 1800 - 200;
+  //   animateCamera(new THREE.Vector3(saturnX + 400, 250, saturnZ + 400), new THREE.Vector3(saturnX, 0, saturnZ));
+  // });
   
-  // Uranus button
-  const uranusBtn = createNavButton('🌀 Uranus', () => {
-    const uranusX = Math.cos(3 * Math.PI / 2) * 2500;
-    const uranusZ = Math.sin(3 * Math.PI / 2) * 2500 - 200;
-    animateCamera(new THREE.Vector3(uranusX + 300, 200, uranusZ + 300), new THREE.Vector3(uranusX, 0, uranusZ));
-  });
+  // // Uranus button
+  // const uranusBtn = createNavButton('🌀 Uranus', () => {
+  //   const uranusX = Math.cos(3 * Math.PI / 2) * 2500;
+  //   const uranusZ = Math.sin(3 * Math.PI / 2) * 2500 - 200;
+  //   animateCamera(new THREE.Vector3(uranusX + 300, 200, uranusZ + 300), new THREE.Vector3(uranusX, 0, uranusZ));
+  // });
   
   // Neptune button
   const neptuneBtn = createNavButton('🔵 Neptune', () => {
@@ -589,8 +606,8 @@ function createNavigationUI(){
   navContainer.appendChild(earthBtn);
   navContainer.appendChild(marsBtn);
   navContainer.appendChild(jupiterBtn);
-  navContainer.appendChild(saturnBtn);
-  navContainer.appendChild(uranusBtn);
+  // navContainer.appendChild(saturnBtn); // DISABLED - missing model
+  // navContainer.appendChild(uranusBtn); // DISABLED - missing model
   navContainer.appendChild(neptuneBtn);
   navContainer.appendChild(plutoBtn);
   navContainer.appendChild(solarSystemBtn);
