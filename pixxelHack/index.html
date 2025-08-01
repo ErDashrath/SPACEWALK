@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Big Bang → Colorful Cosmos</title>
+  <style>
+    html, body { margin:0; overflow:hidden; background:#000; width:100%; height:100%; }
+    canvas { display:block; }
+  </style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+<script src="nebula.js"></script>
+
+<script>
+let scene, camera, renderer, composer, controls;
+let explosionParticles, galaxyParticles;
+let clock = new THREE.Clock();
+let explosionCount = 20000;
+let galaxyCount = 8000;
+let viaGalaxy = false;
+let originalVelocities; // Store original velocities
+let nebulaFadeAlpha = 0; // For smooth fade-in
+let nebulaPatches = []; // Array to hold nebula patches
+let animationPaused = false; // Animation pause state
+let showBigBangText = false;
+
+init(); animate();
+
+function init(){
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 5000);
+  camera.position.z = 200;
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(devicePixelRatio);
+  document.body.appendChild(renderer.domElement);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  composer = new THREE.EffectComposer(renderer);
+  composer.addPass(new THREE.RenderPass(scene,camera));
+  let bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),1.5,0.4,0.85);
+  bloom.threshold = 0; bloom.strength = 2; bloom.radius = 0.5;
+  composer.addPass(bloom);
+
+  createExplosion();
+  window.addEventListener('resize', onResize);
+}
+
+function createExplosion(){
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(explosionCount*3);
+  const vel = new Float32Array(explosionCount*3);
+  originalVelocities = new Float32Array(explosionCount*3); // Store original velocities
+  for(let i=0;i<explosionCount;i++){
+    pos[i*3]=0; pos[i*3+1]=0; pos[i*3+2]=0;
+    const theta = Math.random()*Math.PI*2;
+    const phi = Math.acos(2*Math.random()-1);
+    const speed = Math.random()*1.0 + 0.5;
+    vel[i*3] = speed*Math.sin(phi)*Math.cos(theta);
+    vel[i*3+1] = speed*Math.sin(phi)*Math.sin(theta);
+    vel[i*3+2] = speed*Math.cos(phi);
+    // Store original velocities
+    originalVelocities[i*3] = vel[i*3];
+    originalVelocities[i*3+1] = vel[i*3+1];
+    originalVelocities[i*3+2] = vel[i*3+2];
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('velocity', new THREE.BufferAttribute(vel,3));
+
+  const material = new THREE.PointsMaterial({
+    size:2.5, map: generateSprite(),
+    blending:THREE.AdditiveBlending, transparent:true, opacity:1,
+    depthWrite:false
+  });
+  explosionParticles = new THREE.Points(geo, material);
+  scene.add(explosionParticles);
+}
+
+function generateSprite(){
+  const canvas = document.createElement('canvas');
+  canvas.width=64; canvas.height=64;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createRadialGradient(32,32,0,32,32,32);
+  grad.addColorStop(0,'rgba(255,255,255,1)');
+  grad.addColorStop(0.2,'rgba(255,255,255,0.8)');
+  grad.addColorStop(0.4,'rgba(255,255,255,0.5)');
+  grad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(canvas);
+}
+
+function createGalaxy(){
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(galaxyCount*3);
+  for(let i=0;i<galaxyCount;i++){
+    pos[i*3] = (Math.random()-0.5)*2000;
+    pos[i*3+1] = (Math.random()-0.5)*2000;
+    pos[i*3+2] = (Math.random()-0.5)*2000;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const mat = new THREE.PointsMaterial({
+    size:1.5, depthTest:false, blending:THREE.AdditiveBlending,
+    transparent:true, opacity:0.6,
+    vertexColors:false
+  });
+  galaxyParticles = new THREE.Points(geo, mat);
+  scene.add(galaxyParticles);
+}
+
+function onResize(){
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight); composer.setSize(innerWidth,innerHeight);
+}
+
+function animate(){
+  if (animationPaused) return;
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  if(explosionParticles){
+    const pos = explosionParticles.geometry.attributes.position.array;
+
+    // Check camera distance to determine direction
+    const cameraDistance = camera.position.length();
+    const reverseThreshold = 150; // Distance threshold for reversal
+    const direction = cameraDistance > reverseThreshold ? 1 : -1;
+
+    for(let i=0;i<explosionCount;i++){
+      // Use original velocities for consistent movement
+      pos[i*3] += originalVelocities[i*3]*50*dt*direction;
+      pos[i*3+1] += originalVelocities[i*3+1]*50*dt*direction;
+      pos[i*3+2] += originalVelocities[i*3+2]*50*dt*direction;
+    }
+    explosionParticles.geometry.attributes.position.needsUpdate = true;
+  }
+
+  // Add nebula after 3 seconds when expanding
+  const t = clock.elapsedTime;
+  const cameraDistance = camera.position.length();
+  if (t > 3 && cameraDistance > 150 && nebulaPatches.length === 0) {
+    nebulaPatches = window.createNebula(scene);
+  }
+
+  // Smooth fade-in and rotation for nebula clouds
+  if(nebulaPatches.length > 0 && cameraDistance > 150){
+    // Gradual fade-in over 2 seconds
+    nebulaFadeAlpha = Math.min(nebulaFadeAlpha + dt * 0.5, 0.3);
+
+    nebulaPatches.forEach((cloud, index) => {
+      cloud.material.opacity = nebulaFadeAlpha;
+
+      // Each cloud rotates slightly differently
+      cloud.rotation.x += 0.0005 * (index + 1);
+      cloud.rotation.y += 0.001 * (index + 1);
+      cloud.rotation.z += 0.0003 * (index + 1);
+    });
+  }
+
+  // Smooth fade-out and remove nebula when contracting
+  if(cameraDistance <= 150 && nebulaPatches.length > 0){
+    nebulaFadeAlpha = Math.max(nebulaFadeAlpha - dt * 2, 0);
+
+    nebulaPatches.forEach(cloud => {
+      cloud.material.opacity = nebulaFadeAlpha;
+    });
+
+    if(nebulaFadeAlpha <= 0){
+      nebulaPatches.forEach(cloud => scene.remove(cloud));
+      nebulaPatches = [];
+    }
+  }
+
+  controls.update();
+  composer.render(dt);
+}
+
+function showCenterText() {
+  let textDiv = document.getElementById('bigbang-text');
+  if (!textDiv) {
+    textDiv = document.createElement('div');
+    textDiv.id = 'bigbang-text';
+    textDiv.style.position = 'fixed';
+    textDiv.style.top = '50%';
+    textDiv.style.left = '50%';
+    textDiv.style.transform = 'translate(-50%, -50%)';
+    textDiv.style.fontFamily = 'Georgia, Times New Roman, Times, serif';
+    textDiv.style.fontSize = '9vw'; // size+1
+    textDiv.style.color = '#fff';
+    textDiv.style.background = 'none'; // Remove glass style
+    textDiv.style.borderRadius = '0';
+    textDiv.style.boxShadow = 'none';
+    textDiv.style.backdropFilter = 'none';
+    textDiv.style.border = 'none';
+    textDiv.style.display = 'flex';
+    textDiv.style.justifyContent = 'center';
+    textDiv.style.alignItems = 'center';
+    textDiv.style.letterSpacing = '0.02em'; // Min gap between letters
+    textDiv.style.fontWeight = 'bold';
+    textDiv.style.zIndex = '1000';
+    textDiv.style.pointerEvents = 'none';
+    textDiv.style.userSelect = 'none';
+    textDiv.style.opacity = '1';
+    textDiv.style.transition = 'opacity 1s ease-out'; // Fade in text
+    document.body.appendChild(textDiv);
+
+    // Split text into spans for each letter
+    const word = 'BIG BANG';
+    textDiv.innerHTML = '';
+    for (let i = 0; i < word.length; i++) {
+      const span = document.createElement('span');
+      span.innerText = word[i] === ' ' ? '\u00A0' : word[i];
+      span.style.display = 'inline-block';
+      span.style.opacity = '0';
+      span.style.filter = 'blur(8px)';
+      span.style.transition = 'all 1.8s cubic-bezier(0.23,1.01,0.32,1)';
+      span.style.margin = '0 0.01em'; // Min gap between letters
+      // Random start position
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 200 + Math.random() * 200;
+      span.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px) scale(2.2) skew(${Math.random()*40-20}deg)`;
+      textDiv.appendChild(span);
+    }
+    // Animate each letter in with delay for slow-mo effect
+    setTimeout(() => {
+      const spans = textDiv.querySelectorAll('span');
+      spans.forEach((span, i) => {
+        setTimeout(() => {
+          span.style.opacity = '1';
+          span.style.filter = 'blur(0px)';
+          span.style.transform = 'translate(0,0) scale(1) skew(0deg)';
+          if (i === spans.length - 1) showMainContentAfterText();
+        }, 350 * i); // slow-mo stagger
+      });
+    }, 100);
+  } else {
+    textDiv.style.display = 'block';
+  }
+}
+
+setTimeout(() => {
+  showBigBangText = true;
+  showCenterText();
+}, 8000);
+
+window.addEventListener('keydown', function(e) {
+  if (e.key === 'p' || e.key === 'P') {
+    animationPaused = !animationPaused;
+    if (!animationPaused) animate();
+  }
+});
+
+function showMainWebsiteContent() {
+  if (document.getElementById('main-content')) return;
+  const main = document.createElement('div');
+  main.id = 'main-content';
+  main.style.position = 'relative';
+  main.style.zIndex = '1001';
+  main.style.background = 'rgba(10,10,20,0.98)';
+  main.style.color = '#fff';
+  main.style.fontFamily = 'Georgia, Times New Roman, Times, serif';
+  main.style.minHeight = '100vh';
+  main.innerHTML = `
+    <nav style="width:100%;background:#111;padding:1.2em 0 1.2em 0;text-align:center;position:sticky;top:0;z-index:1002;">
+      <a href="#planets" style="color:#fff;margin:0 2vw;text-decoration:none;font-size:1.3em;">Planets</a>
+      <a href="#nebulas" style="color:#fff;margin:0 2vw;text-decoration:none;font-size:1.3em;">Nebulas</a>
+      <a href="#blackholes" style="color:#fff;margin:0 2vw;text-decoration:none;font-size:1.3em;">Black Holes</a>
+      <a href="#contact" style="color:#fff;margin:0 2vw;text-decoration:none;font-size:1.3em;">Contact</a>
+    </nav>
+    <section id="planets" style="padding:4em 0 2em 0;text-align:center;">
+      <h2 style="font-size:2.5em;margin-bottom:1em;">Planets</h2>
+      <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:2em;">
+        <div style="background:#222;padding:2em;border-radius:1em;width:260px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg" alt="Earth" style="width:100%;border-radius:0.7em;">
+          <h3>Earth</h3>
+          <p>Our home planet, rich in life and blue oceans.</p>
+        </div>
+        <div style="background:#222;padding:2em;border-radius:1em;width:260px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg" alt="Mars" style="width:100%;border-radius:0.7em;">
+          <h3>Mars</h3>
+          <p>The red planet, a future destination for human exploration.</p>
+        </div>
+      </div>
+    </section>
+    <section id="nebulas" style="padding:4em 0 2em 0;text-align:center;">
+      <h2 style="font-size:2.5em;margin-bottom:1em;">Nebulas</h2>
+      <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:2em;">
+        <div style="background:#222;padding:2em;border-radius:1em;width:260px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/NGC_6302_Hubble_2009.full.jpg" alt="Butterfly Nebula" style="width:100%;border-radius:0.7em;">
+          <h3>Butterfly Nebula</h3>
+          <p>A bipolar planetary nebula in the constellation Scorpius.</p>
+        </div>
+        <div style="background:#222;padding:2em;border-radius:1em;width:260px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/3/3f/NGC_7293_%28The_Helix_Nebula%29.jpg" alt="Helix Nebula" style="width:100%;border-radius:0.7em;">
+          <h3>Helix Nebula</h3>
+          <p>One of the closest bright planetary nebulae to Earth.</p>
+        </div>
+      </div>
+    </section>
+    <section id="blackholes" style="padding:4em 0 2em 0;text-align:center;">
+      <h2 style="font-size:2.5em;margin-bottom:1em;">Black Holes</h2>
+      <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:2em;">
+        <div style="background:#222;padding:2em;border-radius:1em;width:260px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/5/5f/Black_hole_-_Messier_87_crop_max_res.jpg" alt="M87 Black Hole" style="width:100%;border-radius:0.7em;">
+          <h3>M87 Black Hole</h3>
+          <p>The first black hole ever imaged, located in the galaxy M87.</p>
+        </div>
+        <div style="background:#222;padding:2em;border-radius:1em;width:260px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Black_Hole_Milkyway.jpg" alt="Milky Way Black Hole" style="width:100%;border-radius:0.7em;">
+          <h3>Milky Way Black Hole</h3>
+          <p>The supermassive black hole at the center of our galaxy.</p>
+        </div>
+      </div>
+    </section>
+    <section id="contact" style="padding:4em 0 2em 0;text-align:center;">
+      <h2 style="font-size:2.5em;margin-bottom:1em;">Contact</h2>
+      <div style="display:flex;justify-content:center;align-items:center;gap:2em;flex-wrap:wrap;">
+        <img src="https://avatars.githubusercontent.com/u/9919?s=200&v=4" alt="Author" style="width:120px;height:120px;border-radius:50%;border:4px solid #fff;">
+        <div style="max-width:400px;text-align:left;">
+          <h3>Dashrath (Author)</h3>
+          <p>Passionate about astronomy, coding, and sharing the wonders of the universe. Reach out for collaboration or questions!</p>
+        </div>
+      </div>
+    </section>
+  `;
+  document.body.appendChild(main);
+  // Hide the BIG BANG text
+  const textDiv = document.getElementById('bigbang-text');
+  if (textDiv) textDiv.style.display = 'none';
+  // Scroll to main content
+  setTimeout(() => {
+    main.scrollIntoView({behavior:'smooth'});
+  }, 100);
+}
+
+// After the last letter animates in, show the main content
+function showMainContentAfterText() {
+  const textDiv = document.getElementById('bigbang-text');
+  if (!textDiv) return;
+  const spans = textDiv.querySelectorAll('span');
+  if (spans.length === 0) return;
+  setTimeout(() => {
+    showMainWebsiteContent();
+  }, 350 * (spans.length - 1) + 2000); // Wait for last letter + 2s
+}
+</script>
+</body>
+</html>
