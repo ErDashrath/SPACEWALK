@@ -1389,13 +1389,13 @@ function createSpaceWalkTextAnimation() {
       const letterDiv = document.createElement('div');
       letterDiv.textContent = letter;
       letterDiv.style.position = 'fixed';
-      letterDiv.style.fontSize = '120px';
+      letterDiv.style.fontSize = '120px'; // Increased back to 120px for bigger letters
       letterDiv.style.fontWeight = 'bold';
       letterDiv.style.color = 'white';
       letterDiv.style.fontFamily = 'Astronoma, Arial, sans-serif';
       letterDiv.style.zIndex = '10000';
       letterDiv.style.pointerEvents = 'none';
-      letterDiv.style.textShadow = '0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.4)';
+      letterDiv.style.textShadow = 'none'; // Removed glow - solid white only
       letterDiv.style.transition = 'all 2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
       
       // Random starting position outside the viewport
@@ -1429,11 +1429,11 @@ function createSpaceWalkTextAnimation() {
       
       // Animate to final position after short delay
       setTimeout(() => {
-        // Calculate final position for SPACEWALK as one centered word
-        const totalWidth = letters.length * 100; // Approximate width per letter
+        // Calculate final position for SPACEWALK as one centered word with normal minimal spacing
+        const totalWidth = letters.length * 85; // Adjusted to 85px for proper spacing with 120px letters
         const startX = (window.innerWidth - totalWidth) / 2;
-        const finalX = startX + (index * 100);
-        const finalY = window.innerHeight / 2 - 60;
+        const finalX = startX + (index * 85); // Normal minimal spacing - no overlap
+        const finalY = window.innerHeight / 2 - 60; // Adjusted for larger font (120px)
         
         letterDiv.style.left = finalX + 'px';
         letterDiv.style.top = finalY + 'px';
@@ -1448,31 +1448,33 @@ function createSpaceWalkTextAnimation() {
       resumeButton.style.left = '50%';
       resumeButton.style.top = '65%';
       resumeButton.style.transform = 'translateX(-50%)';
-      resumeButton.style.padding = '20px 40px';
-      resumeButton.style.fontSize = '24px';
+      resumeButton.style.padding = '12px 24px'; // Reduced from 20px 40px for smaller size
+      resumeButton.style.fontSize = '16px'; // Reduced from 24px for smaller text
       resumeButton.style.fontFamily = 'Astronoma, Arial, sans-serif';
       resumeButton.style.background = 'transparent';
       resumeButton.style.color = 'white';
       resumeButton.style.border = '2px solid white';
-      resumeButton.style.borderRadius = '50px';
+      resumeButton.style.borderRadius = '30px'; // Reduced from 50px
       resumeButton.style.cursor = 'pointer';
       resumeButton.style.zIndex = '10001';
       resumeButton.style.backdropFilter = 'blur(10px)';
       resumeButton.style.transition = 'all 0.3s ease';
       resumeButton.style.fontWeight = 'bold';
-      resumeButton.style.letterSpacing = '2px';
+      resumeButton.style.letterSpacing = '1px'; // Reduced from 2px
       resumeButton.style.textTransform = 'lowercase';
       
-      // Hover effects
+      // Hover effects - turn white on hover
       resumeButton.onmouseover = () => {
-        resumeButton.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-        resumeButton.style.color = 'white';
+        resumeButton.style.backgroundColor = 'white';
+        resumeButton.style.color = 'black';
+        resumeButton.style.borderColor = 'white';
         resumeButton.style.transform = 'translateX(-50%) scale(1.05)';
       };
       
       resumeButton.onmouseout = () => {
         resumeButton.style.backgroundColor = 'transparent';
         resumeButton.style.color = 'white';
+        resumeButton.style.borderColor = 'white';
         resumeButton.style.transform = 'translateX(-50%) scale(1)';
       };
       
@@ -1759,15 +1761,17 @@ function createTopNavbar() {
     menuBtn.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; // Smooth animation
     menuBtn.style.fontWeight = '500';
     
-    // Hover effects
+    // Hover effects - turn white on hover
     menuBtn.onmouseover = () => {
-      menuBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-      menuBtn.style.borderColor = 'rgba(255, 255, 255, 0.7)';
+      menuBtn.style.backgroundColor = 'white';
+      menuBtn.style.color = 'black';
+      menuBtn.style.borderColor = 'white';
       menuBtn.style.transform = 'scale(1.05)';
     };
     
     menuBtn.onmouseout = () => {
       menuBtn.style.backgroundColor = 'transparent';
+      menuBtn.style.color = 'white';
       menuBtn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
       menuBtn.style.transform = 'scale(1)';
     };
@@ -1792,15 +1796,17 @@ function createTopNavbar() {
     menuContainer.appendChild(menuBtn);
   });
   
-  // Hamburger hover effects
+  // Hamburger hover effects - turn white on hover
   hamburger.onmouseover = () => {
-    hamburger.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-    hamburger.style.borderColor = 'rgba(255, 255, 255, 0.7)';
+    hamburger.style.backgroundColor = 'white';
+    hamburger.style.color = 'black';
+    hamburger.style.borderColor = 'white';
     hamburger.style.transform = 'scale(1.05)';
   };
   
   hamburger.onmouseout = () => {
     hamburger.style.backgroundColor = 'transparent';
+    hamburger.style.color = 'white';
     hamburger.style.borderColor = 'rgba(255, 255, 255, 0.3)';
     hamburger.style.transform = 'scale(1)';
   };
