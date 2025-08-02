@@ -1,0 +1,21 @@
+# VS Code settings and workspace files
+.vscode/
+
+# Node modules (if using npm/node in the future)
+node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
