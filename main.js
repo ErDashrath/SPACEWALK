@@ -51,7 +51,6 @@ function init(){
 
   createExplosion();
   createStarField(); // Add background stars immediately
-  createNavigationUI();
   window.addEventListener('resize', onResize);
 }
 
@@ -242,7 +241,7 @@ function loadModel(){
       console.log("Black hole model loaded successfully!");
       
       // Add coordinate marker for black hole
-      createCoordinateMarker(blackHoleModel.position, 'Black Hole\n(2000, 800, -1500)', 0x800080);
+      createCoordinateMarker(blackHoleModel.position, 'Black Hole\n(2000, 800, -1500)', 0x800080, new THREE.Vector3(100, 100, 100));
     },
     (progress) => {
       console.log('Loading progress:', (progress.loaded / progress.total * 100) + '%');
@@ -298,7 +297,7 @@ function loadSunModel(){
       createSunGlow();
       
       // Add coordinate marker for sun 
-      createCoordinateMarker(sunModel.position, 'Sun\n(0, 0, -200)', 0xffaa00);
+      createCoordinateMarker(sunModel.position, 'Sun\n(0, 0, -200)', 0xffaa00, new THREE.Vector3(0, 0, 400));
       
     },
     (progress) => {
@@ -334,90 +333,32 @@ function loadPlanets(){
   // All objects scaled to same size for uniform viewing
   const planetData = {
     mercury: { 
-      distance: 200, // Inner orbit
-      angle: 0, // Starting angle in radians
-      size: 2.0, // Same size as all others
-      color: 0x8c7853,
-      folder: 'mercury'
+      distance: 200, angle: 0, size: 2.0, color: 0x8c7853, folder: 'mercury',
+      offset: new THREE.Vector3(50, 50, 50)
     },
     venus: { 
-      distance: 350, // Second orbit
-      angle: Math.PI / 4, // 45 degrees offset
-      size: 1.0, // Smaller size to prevent overlapping
-      color: 0xffc649,
-      folder: 'venus'
+      distance: 350, angle: Math.PI / 4, size: 1.0, color: 0xffc649, folder: 'venus',
+      offset: new THREE.Vector3(70, 70, 70)
     },
     earth: { 
-      distance: 500, // Third orbit - reference
-      angle: Math.PI / 2, // 90 degrees offset
-      size: 0.5, // Much smaller size
-      color: 0x6b93d6,
-      folder: 'earth'
+      distance: 500, angle: Math.PI / 2, size: 0.5, color: 0x6b93d6, folder: 'earth',
+      offset: new THREE.Vector3(100, 100, 100)
     },
     mars: { 
-      distance: 700, // Fourth orbit
-      angle: 3 * Math.PI / 4, // 135 degrees offset
-      size: 2.0, // Same size as all others
-      color: 0xcd5c5c,
-      folder: 'mars_the_red_planet_free'
+      distance: 700, angle: 3 * Math.PI / 4, size: 2.0, color: 0xcd5c5c, folder: 'mars_the_red_planet_free',
+      offset: new THREE.Vector3(150, 100, 150)
     },
     jupiter: { 
-      distance: 1200, // Fifth orbit - gas giant
-      angle: Math.PI, // 180 degrees offset
-      size: 2.0, // Same size as all others
-      color: 0xd8ca9d,
-      folder: 'jupiter'
+      distance: 1200, angle: Math.PI, size: 2.0, color: 0xd8ca9d, folder: 'jupiter',
+      offset: new THREE.Vector3(300, 200, 300)
     },
-    // TEMPORARILY DISABLED - Missing large .bin files
-    // saturn: { 
-    //   distance: 1800, // Sixth orbit
-    //   angle: 5 * Math.PI / 4, // 225 degrees offset
-    //   size: 5.0, 
-    //   color: 0xfad5a5,
-    //   folder: 'saturn (1)'
-    // },
-    // uranus: { 
-    //   distance: 2500, // Seventh orbit
-    //   angle: 3 * Math.PI / 2, // 270 degrees offset
-    //   size: 2.5, 
-    //   color: 0x4fd0e3,
-    //   folder: 'uranus'
-    // },
     neptune: { 
-      distance: 3200, // Eighth orbit
-      angle: 7 * Math.PI / 4, // 315 degrees offset
-      size: 2.5, 
-      color: 0x4b70dd,
-      folder: 'neptune'
+      distance: 3200, angle: 7 * Math.PI / 4, size: 2.5, color: 0x4b70dd, folder: 'neptune',
+      offset: new THREE.Vector3(300, 200, 300)
     },
-    // DUPLICATE ENTRIES REMOVED
-    // saturn: { 
-    //   distance: 1800, // Sixth orbit
-    //   angle: 5 * Math.PI / 4, // 225 degrees offset
-    //   size: 0.08, // 10 times smaller than 0.8 (0.8 / 10 = 0.08)
-    //   color: 0xfad5a5,
-    //   folder: 'saturn (1)'
-    // },
-    // uranus: { 
-    //   distance: 2500, // Seventh orbit
-    //   angle: 3 * Math.PI / 2, // 270 degrees offset
-    //   size: 0.8, // Much smaller to account for ring system
-    //   color: 0x4fd0e3,
-    //   folder: 'uranus'
-    // },
-    // neptune: { 
-    //   distance: 3200, // Eighth orbit
-    //   angle: 7 * Math.PI / 4, // 315 degrees offset
-    //   size: 2.0, // Same size as all others
-    //   color: 0x4b70dd,
-    //   folder: 'neptune'
-    // },
     pluto: { 
-      distance: 4000, // Outer orbit - dwarf planet
-      angle: 2 * Math.PI / 3, // Different angle
-      size: 2.0, // Same size as all others
-      color: 0xbc8f8f,
-      folder: 'pluto'
+      distance: 4000, angle: 2 * Math.PI / 3, size: 2.0, color: 0xbc8f8f, folder: 'pluto',
+      offset: new THREE.Vector3(200, 150, 200)
     }
   };
 
@@ -483,7 +424,8 @@ function loadPlanets(){
         createCoordinateMarker(
           planetModel.position, 
           `${planetName.charAt(0).toUpperCase() + planetName.slice(1)}\n(${Math.round(x)}, 0, ${Math.round(z)})`, 
-          planet.color
+          planet.color,
+          planet.offset
         );
         
         console.log(`${planetName} model loaded successfully!`);
@@ -498,149 +440,6 @@ function loadPlanets(){
   });
 }
 
-function createNavigationUI(){
-  // Create navigation buttons
-  const navContainer = document.createElement('div');
-  navContainer.style.position = 'fixed';
-  navContainer.style.top = '20px';
-  navContainer.style.left = '20px';
-  navContainer.style.zIndex = '1000';
-  navContainer.style.display = 'flex';
-  navContainer.style.flexDirection = 'column';
-  navContainer.style.gap = '10px';
-  
-  // Center/Explosion button (back to original burst view)
-  const centerBtn = createNavButton('🌌 Center/Burst', () => {
-    animateCamera(new THREE.Vector3(0, 0, 200), new THREE.Vector3(0, 0, 0));
-  });
-  
-  // Sun button (look at sun's new position)
-  const sunBtn = createNavButton('☀️ Sun Close-up', () => {
-    animateCamera(new THREE.Vector3(0, 0, 200), new THREE.Vector3(0, 0, -200));
-  });
-  
-  // Black Hole button (comfortable viewing distance)
-  const blackHoleBtn = createNavButton('⚫ Black Hole', () => {
-    animateCamera(new THREE.Vector3(1100, 400, 900), new THREE.Vector3(1000, 300, 800));
-  });
-  
-  // Overview button - bird's eye view of the solar system
-  const overviewBtn = createNavButton('🌍 Overview', () => {
-    animateCamera(new THREE.Vector3(1500, 1200, 800), new THREE.Vector3(0, 0, -200));
-  });
-  
-  // Solar System Overview button - wide view of orbital system
-  const solarSystemBtn = createNavButton('🪐 Solar System', () => {
-    animateCamera(new THREE.Vector3(3000, 2000, 1000), new THREE.Vector3(0, 0, -200));
-  });
-  
-  // Mercury button
-  const mercuryBtn = createNavButton('☿ Mercury', () => {
-    const mercuryX = Math.cos(0) * 200;
-    const mercuryZ = Math.sin(0) * 200 - 200;
-    animateCamera(new THREE.Vector3(mercuryX + 50, 50, mercuryZ + 50), new THREE.Vector3(mercuryX, 0, mercuryZ));
-  });
-  
-  // Venus button
-  const venusBtn = createNavButton('♀ Venus', () => {
-    const venusX = Math.cos(Math.PI / 4) * 350;
-    const venusZ = Math.sin(Math.PI / 4) * 350 - 200;
-    animateCamera(new THREE.Vector3(venusX + 70, 70, venusZ + 70), new THREE.Vector3(venusX, 0, venusZ));
-  });
-  
-  // Earth button - positioned in orbit
-  const earthBtn = createNavButton('🌍 Earth', () => {
-    const earthX = Math.cos(Math.PI / 2) * 500;
-    const earthZ = Math.sin(Math.PI / 2) * 500 - 200;
-    animateCamera(new THREE.Vector3(earthX + 100, 100, earthZ + 100), new THREE.Vector3(earthX, 0, earthZ));
-  });
-  
-  // Mars button - positioned in orbit
-  const marsBtn = createNavButton('🔴 Mars', () => {
-    const marsX = Math.cos(3 * Math.PI / 4) * 700;
-    const marsZ = Math.sin(3 * Math.PI / 4) * 700 - 200;
-    animateCamera(new THREE.Vector3(marsX + 150, 100, marsZ + 150), new THREE.Vector3(marsX, 0, marsZ));
-  });
-  
-  // Jupiter button - positioned in orbit
-  const jupiterBtn = createNavButton('🪐 Jupiter', () => {
-    const jupiterX = Math.cos(Math.PI) * 1200;
-    const jupiterZ = Math.sin(Math.PI) * 1200 - 200;
-    animateCamera(new THREE.Vector3(jupiterX + 300, 200, jupiterZ + 300), new THREE.Vector3(jupiterX, 0, jupiterZ));
-  });
-  
-  // TEMPORARILY DISABLED - Saturn and Uranus models missing
-  // // Saturn button
-  // const saturnBtn = createNavButton('🪐 Saturn', () => {
-  //   const saturnX = Math.cos(5 * Math.PI / 4) * 1800;
-  //   const saturnZ = Math.sin(5 * Math.PI / 4) * 1800 - 200;
-  //   animateCamera(new THREE.Vector3(saturnX + 400, 250, saturnZ + 400), new THREE.Vector3(saturnX, 0, saturnZ));
-  // });
-  
-  // // Uranus button
-  // const uranusBtn = createNavButton('🌀 Uranus', () => {
-  //   const uranusX = Math.cos(3 * Math.PI / 2) * 2500;
-  //   const uranusZ = Math.sin(3 * Math.PI / 2) * 2500 - 200;
-  //   animateCamera(new THREE.Vector3(uranusX + 300, 200, uranusZ + 300), new THREE.Vector3(uranusX, 0, uranusZ));
-  // });
-  
-  // Neptune button
-  const neptuneBtn = createNavButton('🔵 Neptune', () => {
-    const neptuneX = Math.cos(7 * Math.PI / 4) * 3200;
-    const neptuneZ = Math.sin(7 * Math.PI / 4) * 3200 - 200;
-    animateCamera(new THREE.Vector3(neptuneX + 300, 200, neptuneZ + 300), new THREE.Vector3(neptuneX, 0, neptuneZ));
-  });
-  
-  // Pluto button
-  const plutoBtn = createNavButton('🟤 Pluto', () => {
-    const plutoX = Math.cos(2 * Math.PI / 3) * 4000;
-    const plutoZ = Math.sin(2 * Math.PI / 3) * 4000 - 200;
-    animateCamera(new THREE.Vector3(plutoX + 200, 150, plutoZ + 200), new THREE.Vector3(plutoX, 0, plutoZ));
-  });
-  
-  navContainer.appendChild(centerBtn);
-  navContainer.appendChild(sunBtn);
-  navContainer.appendChild(blackHoleBtn);
-  navContainer.appendChild(mercuryBtn);
-  navContainer.appendChild(venusBtn);
-  navContainer.appendChild(earthBtn);
-  navContainer.appendChild(marsBtn);
-  navContainer.appendChild(jupiterBtn);
-  // navContainer.appendChild(saturnBtn); // DISABLED - missing model
-  // navContainer.appendChild(uranusBtn); // DISABLED - missing model
-  navContainer.appendChild(neptuneBtn);
-  navContainer.appendChild(plutoBtn);
-  navContainer.appendChild(solarSystemBtn);
-  navContainer.appendChild(overviewBtn);
-  
-  document.body.appendChild(navContainer);
-}
-
-function createNavButton(text, onClick){
-  const button = document.createElement('button');
-  button.textContent = text;
-  button.style.padding = '10px 15px';
-  button.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-  button.style.color = 'white';
-  button.style.border = '1px solid rgba(255, 255, 255, 0.3)';
-  button.style.borderRadius = '5px';
-  button.style.cursor = 'pointer';
-  button.style.fontSize = '14px';
-  button.style.transition = 'all 0.3s ease';
-  
-  button.onmouseover = () => {
-    button.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-    button.style.transform = 'scale(1.05)';
-  };
-  
-  button.onmouseout = () => {
-    button.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-    button.style.transform = 'scale(1)';
-  };
-  
-  button.onclick = onClick;
-  return button;
-}
 
 function animateCamera(targetPosition, targetLookAt, duration = 2000){
   const startPosition = camera.position.clone();
@@ -671,7 +470,7 @@ function animateCamera(targetPosition, targetLookAt, duration = 2000){
   requestAnimationFrame(animate);
 }
 
-function createCoordinateMarker(position, label, color = 0xffffff){
+function createCoordinateMarker(position, label, color = 0xffffff, offset = new THREE.Vector3(150, 100, 150)){
   // Create a small sphere marker
   const markerGeometry = new THREE.SphereGeometry(5, 16, 16);
   const markerMaterial = new THREE.MeshBasicMaterial({ 
@@ -695,11 +494,17 @@ function createCoordinateMarker(position, label, color = 0xffffff){
   labelDiv.style.padding = '4px 8px';
   labelDiv.style.borderRadius = '4px';
   labelDiv.style.border = `1px solid #${color.toString(16).padStart(6, '0')}`;
-  labelDiv.style.pointerEvents = 'none';
+  labelDiv.style.pointerEvents = 'auto'; // Make it clickable
+  labelDiv.style.cursor = 'pointer'; // Show pointer on hover
   labelDiv.style.whiteSpace = 'pre-line';
   labelDiv.style.textAlign = 'center';
   labelDiv.style.zIndex = '999';
   
+  labelDiv.onclick = () => {
+    const cameraPosition = new THREE.Vector3().addVectors(position, offset);
+    animateCamera(cameraPosition, position);
+  };
+
   document.body.appendChild(labelDiv);
   
   // Store reference for position updates
