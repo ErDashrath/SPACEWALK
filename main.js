@@ -23,7 +23,7 @@ function init(){
   document.body.appendChild(renderer.domElement);
 
   controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 0, 0); // Focus on center initially
+  controls.target.set(0, 0, -200); // Focus on Sun's actual position
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
 
@@ -330,39 +330,39 @@ function createSunGlow(){
 }
 
 function loadPlanets(){
-  // Planet data with realistic orbital distances in circular arrangement
+  // Planet data with orbital arrangement but MUCH larger distances for better separation
   // All objects scaled to same size for uniform viewing
   const planetData = {
     mercury: { 
-      distance: 200, // Inner orbit
+      distance: 1500, // Much larger distance - was 200
       angle: 0, // Starting angle in radians
       size: 2.0, // Same size as all others
       color: 0x8c7853,
       folder: 'mercury'
     },
     venus: { 
-      distance: 350, // Second orbit
+      distance: 2500, // Much larger distance - was 350
       angle: Math.PI / 4, // 45 degrees offset
       size: 1.0, // Smaller size to prevent overlapping
       color: 0xffc649,
       folder: 'venus'
     },
     earth: { 
-      distance: 500, // Third orbit - reference
+      distance: 3500, // Much larger distance - was 500
       angle: Math.PI / 2, // 90 degrees offset
       size: 0.5, // Much smaller size
       color: 0x6b93d6,
       folder: 'earth'
     },
     mars: { 
-      distance: 700, // Fourth orbit
+      distance: 4500, // Much larger distance - was 700
       angle: 3 * Math.PI / 4, // 135 degrees offset
       size: 2.0, // Same size as all others
       color: 0xcd5c5c,
       folder: 'mars_the_red_planet_free'
     },
     jupiter: { 
-      distance: 1200, // Fifth orbit - gas giant
+      distance: 6000, // Much larger distance - was 1200
       angle: Math.PI, // 180 degrees offset
       size: 2.0, // Same size as all others
       color: 0xd8ca9d,
@@ -384,36 +384,14 @@ function loadPlanets(){
     //   folder: 'uranus'
     // },
     neptune: { 
-      distance: 3200, // Eighth orbit
+      distance: 8000, // Much larger distance - was 3200
       angle: 7 * Math.PI / 4, // 315 degrees offset
       size: 2.5, 
       color: 0x4b70dd,
       folder: 'neptune'
     },
-    // DUPLICATE ENTRIES REMOVED
-    // saturn: { 
-    //   distance: 1800, // Sixth orbit
-    //   angle: 5 * Math.PI / 4, // 225 degrees offset
-    //   size: 0.08, // 10 times smaller than 0.8 (0.8 / 10 = 0.08)
-    //   color: 0xfad5a5,
-    //   folder: 'saturn (1)'
-    // },
-    // uranus: { 
-    //   distance: 2500, // Seventh orbit
-    //   angle: 3 * Math.PI / 2, // 270 degrees offset
-    //   size: 0.8, // Much smaller to account for ring system
-    //   color: 0x4fd0e3,
-    //   folder: 'uranus'
-    // },
-    // neptune: { 
-    //   distance: 3200, // Eighth orbit
-    //   angle: 7 * Math.PI / 4, // 315 degrees offset
-    //   size: 2.0, // Same size as all others
-    //   color: 0x4b70dd,
-    //   folder: 'neptune'
-    // },
     pluto: { 
-      distance: 4000, // Outer orbit - dwarf planet
+      distance: 10000, // Much larger distance - was 4000
       angle: 2 * Math.PI / 3, // Different angle
       size: 2.0, // Same size as all others
       color: 0xbc8f8f,
@@ -434,7 +412,7 @@ function loadPlanets(){
         const baseScale = planet.size * 2; // Base scaling factor
         planetModel.scale.set(baseScale, baseScale, baseScale);
         
-        // Position the planet in circular orbit around the sun
+        // Position the planet in orbital arrangement with much larger distances
         const x = Math.cos(planet.angle) * planet.distance;
         const z = Math.sin(planet.angle) * planet.distance - 200; // Offset to sun's z position
         planetModel.position.set(x, 0, z);
@@ -456,22 +434,35 @@ function loadPlanets(){
               child.material.envMap = null; // Remove environment map reflections
             }
             
-            // Make material unaffected by scene lighting
-            if (child.material.type === 'MeshStandardMaterial' || child.material.type === 'MeshPhysicalMaterial') {
-              // Convert to basic material to remove lighting effects
+            // Special handling for Pluto - ensure no brightness or reflections
+            if (planetName === 'pluto') {
+              // Convert to basic material with muted colors for Pluto
               const basicMaterial = new THREE.MeshBasicMaterial({
                 map: child.material.map,
-                color: child.material.color || new THREE.Color(planet.color),
+                color: new THREE.Color(0x8B7355), // Muted brown color for Pluto
                 transparent: true,
                 opacity: 0
               });
-              basicMaterial.userData.targetOpacity = 1.0;
+              basicMaterial.userData.targetOpacity = 0.9; // Slightly less bright
               child.material = basicMaterial;
             } else {
-              // For other material types, just ensure no lighting response
-              child.material.transparent = true;
-              child.material.opacity = 0;
-              child.material.userData.targetOpacity = 1.0;
+              // Make material unaffected by scene lighting for other planets
+              if (child.material.type === 'MeshStandardMaterial' || child.material.type === 'MeshPhysicalMaterial') {
+                // Convert to basic material to remove lighting effects
+                const basicMaterial = new THREE.MeshBasicMaterial({
+                  map: child.material.map,
+                  color: child.material.color || new THREE.Color(planet.color),
+                  transparent: true,
+                  opacity: 0
+                });
+                basicMaterial.userData.targetOpacity = 1.0;
+                child.material = basicMaterial;
+              } else {
+                // For other material types, just ensure no lighting response
+                child.material.transparent = true;
+                child.material.opacity = 0;
+                child.material.userData.targetOpacity = 1.0;
+              }
             }
           }
         });
@@ -511,22 +502,30 @@ function createNavigationUI(){
   
   // Center/Explosion button (back to original burst view)
   const centerBtn = createNavButton('🌌 Center/Burst', () => {
-    animateCamera(new THREE.Vector3(0, 0, 200), new THREE.Vector3(0, 0, 0));
+    animateCamera(new THREE.Vector3(0, 0, 200), new THREE.Vector3(0, 0, -200)); // Back to original burst position
   });
   
-  // Sun button (look at sun's new position)
+  // Sun button (very close view for full Sun experience)
   const sunBtn = createNavButton('☀️ Sun Close-up', () => {
-    animateCamera(new THREE.Vector3(0, 0, 200), new THREE.Vector3(0, 0, -200));
+    if (sunModel) {
+      ultraCloseUp(sunModel.position, 20, 3000); // Much closer view of the Sun - reduced from 40 to 20 for closer view
+    } else {
+      ultraCloseUp(new THREE.Vector3(0, 0, -200), 20, 3000); // Correct sun position - reduced from 40 to 20
+    }
   });
   
   // Black Hole button (comfortable viewing distance)
   const blackHoleBtn = createNavButton('⚫ Black Hole', () => {
-    animateCamera(new THREE.Vector3(1100, 400, 900), new THREE.Vector3(1000, 300, 800));
+    if (blackHoleModel) {
+      zoomToObject(blackHoleModel.position, 15, 3500); // Black hole zoom
+    } else {
+      zoomToObject(new THREE.Vector3(1000, 300, 800), 15, 3500); // Default black hole area
+    }
   });
   
-  // Overview button - bird's eye view of the solar system
+  // Overview button - bird's eye view of the orbital solar system
   const overviewBtn = createNavButton('🌍 Overview', () => {
-    animateCamera(new THREE.Vector3(1500, 1200, 800), new THREE.Vector3(0, 0, -200));
+    animateCamera(new THREE.Vector3(3000, 2500, 1500), new THREE.Vector3(0, 0, -200));
   });
   
   // Solar System Overview button - wide view of orbital system
@@ -534,39 +533,99 @@ function createNavigationUI(){
     animateCamera(new THREE.Vector3(3000, 2000, 1000), new THREE.Vector3(0, 0, -200));
   });
   
-  // Mercury button
+  // Mercury button - orbital arrangement with custom positioning
   const mercuryBtn = createNavButton('☿ Mercury', () => {
-    const mercuryX = Math.cos(0) * 200;
-    const mercuryZ = Math.sin(0) * 200 - 200;
-    animateCamera(new THREE.Vector3(mercuryX + 50, 50, mercuryZ + 50), new THREE.Vector3(mercuryX, 0, mercuryZ));
+    const mercuryX = Math.cos(0) * 1500;
+    const mercuryZ = Math.sin(0) * 1500 - 200;
+    const mercuryPos = new THREE.Vector3(mercuryX, 0, mercuryZ);
+    
+    // Custom Mercury zoom - much closer view
+    const baseDistance = Math.max(15, 2.0 * 10); // Reduced base distance (20) and scale multiplier (15) for much closer view
+    const offset = baseDistance;
+    
+    const targetPosition = new THREE.Vector3(
+      mercuryPos.x + offset * 1.5,  // Side angle
+      mercuryPos.y + offset * 1.0,  // Elevation
+      mercuryPos.z + offset * 3.0   // Distance
+    );
+    
+    animateCamera(targetPosition, mercuryPos, 2500); // Custom Mercury camera animation
   });
   
-  // Venus button
+  // Venus button - orbital arrangement with custom positioning
   const venusBtn = createNavButton('♀ Venus', () => {
-    const venusX = Math.cos(Math.PI / 4) * 350;
-    const venusZ = Math.sin(Math.PI / 4) * 350 - 200;
-    animateCamera(new THREE.Vector3(venusX + 70, 70, venusZ + 70), new THREE.Vector3(venusX, 0, venusZ));
+    const venusX = Math.cos(Math.PI / 4) * 2500;
+    const venusZ = Math.sin(Math.PI / 4) * 2500 - 200;
+    const venusPos = new THREE.Vector3(venusX, 0, venusZ);
+    
+    // Custom Venus zoom - much closer view for detailed inspection
+    const baseDistance = Math.max(6, 1.0 * 4); // Reduced from 15 to 8 base distance and 12 to 6 multiplier for much closer view
+    const offset = baseDistance;
+    
+    const targetPosition = new THREE.Vector3(
+      venusPos.x + offset * 0.8,  // Reduced side angle from 1.2 to 0.8
+      venusPos.y + offset * 0.5,  // Reduced elevation from 0.8 to 0.5
+      venusPos.z + offset * 1.5   // Reduced distance from 2.5 to 1.5
+    );
+    
+    animateCamera(targetPosition, venusPos, 3000); // Custom Venus camera animation - centers Venus in view
   });
   
-  // Earth button - positioned in orbit
+  // Earth button - orbital arrangement with custom positioning
   const earthBtn = createNavButton('🌍 Earth', () => {
-    const earthX = Math.cos(Math.PI / 2) * 500;
-    const earthZ = Math.sin(Math.PI / 2) * 500 - 200;
-    animateCamera(new THREE.Vector3(earthX + 100, 100, earthZ + 100), new THREE.Vector3(earthX, 0, earthZ));
+    const earthX = Math.cos(Math.PI / 2) * 3500;
+    const earthZ = Math.sin(Math.PI / 2) * 3500 - 200;
+    const earthPos = new THREE.Vector3(earthX, 0, earthZ);
+    
+    // Custom Earth zoom - closer to the model
+    const baseDistance = Math.max(80, 0.5 * 60); // Reduced base distance (80) and scale multiplier (60) for closer view
+    const offset = baseDistance;
+    
+    const targetPosition = new THREE.Vector3(
+      earthPos.x + offset * 1.5,  // Side angle
+      earthPos.y + offset * 1.0,  // Elevation
+      earthPos.z + offset * 3.0   // Distance
+    );
+    
+    animateCamera(targetPosition, earthPos, 3000); // Custom Earth camera animation
   });
   
-  // Mars button - positioned in orbit
+  // Mars button - orbital arrangement with custom positioning
   const marsBtn = createNavButton('🔴 Mars', () => {
-    const marsX = Math.cos(3 * Math.PI / 4) * 700;
-    const marsZ = Math.sin(3 * Math.PI / 4) * 700 - 200;
-    animateCamera(new THREE.Vector3(marsX + 150, 100, marsZ + 150), new THREE.Vector3(marsX, 0, marsZ));
+    const marsX = Math.cos(3 * Math.PI / 4) * 4500;
+    const marsZ = Math.sin(3 * Math.PI / 4) * 4500 - 200;
+    const marsPos = new THREE.Vector3(marsX, 0, marsZ);
+    
+    // Custom Mars zoom - 5x closer than previous setting
+    const baseDistance = Math.max(8, 2.0 * 4); // Reduced base distance (16) and scale multiplier (12) for 5x closer view
+    const offset = baseDistance;
+    
+    const targetPosition = new THREE.Vector3(
+      marsPos.x + offset * 1.5,  // Side angle
+      marsPos.y + offset * 1.0,  // Elevation
+      marsPos.z + offset * 3.0   // Distance
+    );
+    
+    animateCamera(targetPosition, marsPos, 3000); // Custom Mars camera animation
   });
   
-  // Jupiter button - positioned in orbit
+  // Jupiter button - orbital arrangement with custom distance
   const jupiterBtn = createNavButton('🪐 Jupiter', () => {
-    const jupiterX = Math.cos(Math.PI) * 1200;
-    const jupiterZ = Math.sin(Math.PI) * 1200 - 200;
-    animateCamera(new THREE.Vector3(jupiterX + 300, 200, jupiterZ + 300), new THREE.Vector3(jupiterX, 0, jupiterZ));
+    const jupiterX = Math.cos(Math.PI) * 6000;
+    const jupiterZ = Math.sin(Math.PI) * 6000 - 200;
+    const jupiterPos = new THREE.Vector3(jupiterX, 0, jupiterZ);
+    
+    // Custom Jupiter zoom with base distance 200 and scale multiplier 100
+    const baseDistance = Math.max(200, 2 * 100); // 2 is Jupiter scale, 100 is multiplier
+    const offset = baseDistance;
+    
+    const targetPosition = new THREE.Vector3(
+      jupiterPos.x + offset * 1.5,  // Side angle
+      jupiterPos.y + offset * 1.0,  // Elevation
+      jupiterPos.z + offset * 3.0   // Distance
+    );
+    
+    animateCamera(targetPosition, jupiterPos, 4000); // Custom Jupiter camera animation
   });
   
   // TEMPORARILY DISABLED - Saturn and Uranus models missing
@@ -584,23 +643,53 @@ function createNavigationUI(){
   //   animateCamera(new THREE.Vector3(uranusX + 300, 200, uranusZ + 300), new THREE.Vector3(uranusX, 0, uranusZ));
   // });
   
-  // Neptune button
+  // Neptune button - orbital arrangement with custom positioning
   const neptuneBtn = createNavButton('🔵 Neptune', () => {
-    const neptuneX = Math.cos(7 * Math.PI / 4) * 3200;
-    const neptuneZ = Math.sin(7 * Math.PI / 4) * 3200 - 200;
-    animateCamera(new THREE.Vector3(neptuneX + 300, 200, neptuneZ + 300), new THREE.Vector3(neptuneX, 0, neptuneZ));
+    const neptuneX = Math.cos(7 * Math.PI / 4) * 8000;
+    const neptuneZ = Math.sin(7 * Math.PI / 4) * 8000 - 200;
+    const neptunePos = new THREE.Vector3(neptuneX, 0, neptuneZ);
+    
+    // Custom Neptune zoom with increased distance - moved further back
+    const baseDistance = Math.max(150, 2.5 * 120); // Increased base distance (150) and scale multiplier (120) for more distance
+    const offset = baseDistance;
+    
+    const targetPosition = new THREE.Vector3(
+      neptunePos.x + offset * 1.5,  // Side angle
+      neptunePos.y + offset * 1.0,  // Elevation
+      neptunePos.z + offset * 3.0   // Distance
+    );
+    
+    animateCamera(targetPosition, neptunePos, 3500); // Custom Neptune camera animation
   });
   
-  // Pluto button
+  // Pluto button - orbital arrangement with custom positioning
   const plutoBtn = createNavButton('🟤 Pluto', () => {
-    const plutoX = Math.cos(2 * Math.PI / 3) * 4000;
-    const plutoZ = Math.sin(2 * Math.PI / 3) * 4000 - 200;
-    animateCamera(new THREE.Vector3(plutoX + 200, 150, plutoZ + 200), new THREE.Vector3(plutoX, 0, plutoZ));
+    const plutoX = Math.cos(2 * Math.PI / 3) * 10000;
+    const plutoZ = Math.sin(2 * Math.PI / 3) * 10000 - 200;
+    const plutoPos = new THREE.Vector3(plutoX, 0, plutoZ);
+    
+    // Custom Pluto zoom with same distance as Jupiter (1x)
+    const baseDistance = Math.max(200, 2 * 150); // Same as Jupiter: base distance (200) and scale multiplier (100)
+    const offset = baseDistance;
+    
+    const targetPosition = new THREE.Vector3(
+      plutoPos.x + offset * 1.5,  // Side angle
+      plutoPos.y + offset * 1.0,  // Elevation
+      plutoPos.z + offset * 3.0   // Distance
+    );
+    
+    animateCamera(targetPosition, plutoPos, 3000); // Custom Pluto camera animation
+  });
+
+  // Full Cinematic Tour button
+  const tourBtn = createNavButton('🎬 Cinematic Tour', () => {
+    startCinematicTour();
   });
   
   navContainer.appendChild(centerBtn);
   navContainer.appendChild(sunBtn);
   navContainer.appendChild(blackHoleBtn);
+  navContainer.appendChild(tourBtn);
   navContainer.appendChild(mercuryBtn);
   navContainer.appendChild(venusBtn);
   navContainer.appendChild(earthBtn);
@@ -669,6 +758,238 @@ function animateCamera(targetPosition, targetLookAt, duration = 2000){
   }
   
   requestAnimationFrame(animate);
+}
+
+// Enhanced zoom function for full-screen object viewing
+function zoomToObject(objectPosition, objectScale = 1, duration = 3000) {
+  // Calculate optimal camera distance based on object scale to prevent going inside
+  const baseDistance = Math.max(200, objectScale * 100); // Updated base distance to 200 and scale multiplier to 100
+  const cameraDistance = baseDistance;
+  
+  // Create camera position that maintains good viewing angle with much more distance
+  const offset = cameraDistance;
+  
+  // Position camera at optimal distance for full object view without being overwhelming
+  const targetPosition = new THREE.Vector3(
+    objectPosition.x + offset * 1.5,  // Increased from 1.0 to 1.5 for more side angle
+    objectPosition.y + offset * 1.0,  // Increased from 0.8 to 1.0 for more elevation
+    objectPosition.z + offset * 3.0   // Increased from 2.0 to 3.0 for much more distance
+  );
+  
+  const targetLookAt = objectPosition.clone();
+  
+  // Animate camera with longer duration for cinematic effect
+  animateCamera(targetPosition, targetLookAt, duration);
+}
+
+// Ultra close-up function for detailed object inspection
+function ultraCloseUp(objectPosition, objectScale = 1, duration = 2500) {
+  // Get very close to the object for detailed viewing
+  const closeDistance = Math.max(15, objectScale * 8);
+  
+  const targetPosition = new THREE.Vector3(
+    objectPosition.x + closeDistance,
+    objectPosition.y + closeDistance * 0.3,
+    objectPosition.z + closeDistance * 0.8
+  );
+  
+  const targetLookAt = objectPosition.clone();
+  
+  animateCamera(targetPosition, targetLookAt, duration);
+}
+
+// Cinematic tour function - follows solar system order from Sun outward with exact individual button positioning
+function startCinematicTour() {
+  const tourSequence = [
+    { 
+      name: 'Sun', 
+      buttonType: 'sun' // Use exact Sun button logic
+    },
+    { 
+      name: 'Mercury', 
+      buttonType: 'mercury' // Use exact Mercury button logic
+    },
+    { 
+      name: 'Venus', 
+      buttonType: 'venus' // Use exact Venus button logic
+    },
+    { 
+      name: 'Earth', 
+      buttonType: 'earth' // Use exact Earth button logic
+    },
+    { 
+      name: 'Mars', 
+      buttonType: 'mars' // Use exact Mars button logic
+    },
+    { 
+      name: 'Jupiter', 
+      buttonType: 'jupiter' // Use exact Jupiter button logic
+    },
+    { 
+      name: 'Neptune', 
+      buttonType: 'neptune' // Use exact Neptune button logic
+    },
+    { 
+      name: 'Pluto', 
+      buttonType: 'pluto' // Use exact Pluto button logic
+    }
+  ];
+  
+  let currentIndex = 0;
+  
+  function nextTourStop() {
+    if (currentIndex < tourSequence.length) {
+      const stop = tourSequence[currentIndex];
+      console.log(`🎬 Tour: Visiting ${stop.name} (${currentIndex + 1}/${tourSequence.length})`);
+      
+      // Execute the exact same logic as individual planet buttons
+      switch(stop.buttonType) {
+        case 'sun':
+          if (sunModel) {
+            ultraCloseUp(sunModel.position, 20, 3000);
+          } else {
+            ultraCloseUp(new THREE.Vector3(0, 0, -200), 20, 3000);
+          }
+          break;
+          
+        case 'mercury':
+          const mercuryX = Math.cos(0) * 1500;
+          const mercuryZ = Math.sin(0) * 1500 - 200;
+          const mercuryPos = new THREE.Vector3(mercuryX, 0, mercuryZ);
+          
+          const mercuryBaseDistance = Math.max(15, 2.0 * 10);
+          const mercuryOffset = mercuryBaseDistance;
+          
+          const mercuryTargetPosition = new THREE.Vector3(
+            mercuryPos.x + mercuryOffset * 1.5,
+            mercuryPos.y + mercuryOffset * 1.0,
+            mercuryPos.z + mercuryOffset * 3.0
+          );
+          
+          animateCamera(mercuryTargetPosition, mercuryPos, 2500);
+          break;
+          
+        case 'venus':
+          const venusX = Math.cos(Math.PI / 4) * 2500;
+          const venusZ = Math.sin(Math.PI / 4) * 2500 - 200;
+          const venusPos = new THREE.Vector3(venusX, 0, venusZ);
+          
+          const venusBaseDistance = Math.max(6, 1.0 * 4);
+          const venusOffset = venusBaseDistance;
+          
+          const venusTargetPosition = new THREE.Vector3(
+            venusPos.x + venusOffset * 0.8,
+            venusPos.y + venusOffset * 0.5,
+            venusPos.z + venusOffset * 1.5
+          );
+          
+          animateCamera(venusTargetPosition, venusPos, 3000);
+          break;
+          
+        case 'earth':
+          const earthX = Math.cos(Math.PI / 2) * 3500;
+          const earthZ = Math.sin(Math.PI / 2) * 3500 - 200;
+          const earthPos = new THREE.Vector3(earthX, 0, earthZ);
+          
+          const earthBaseDistance = Math.max(80, 0.5 * 60);
+          const earthOffset = earthBaseDistance;
+          
+          const earthTargetPosition = new THREE.Vector3(
+            earthPos.x + earthOffset * 1.5,
+            earthPos.y + earthOffset * 1.0,
+            earthPos.z + earthOffset * 3.0
+          );
+          
+          animateCamera(earthTargetPosition, earthPos, 3000);
+          break;
+          
+        case 'mars':
+          const marsX = Math.cos(3 * Math.PI / 4) * 4500;
+          const marsZ = Math.sin(3 * Math.PI / 4) * 4500 - 200;
+          const marsPos = new THREE.Vector3(marsX, 0, marsZ);
+          
+          const marsBaseDistance = Math.max(8, 2.0 * 4);
+          const marsOffset = marsBaseDistance;
+          
+          const marsTargetPosition = new THREE.Vector3(
+            marsPos.x + marsOffset * 1.5,
+            marsPos.y + marsOffset * 1.0,
+            marsPos.z + marsOffset * 3.0
+          );
+          
+          animateCamera(marsTargetPosition, marsPos, 3000);
+          break;
+          
+        case 'jupiter':
+          const jupiterX = Math.cos(Math.PI) * 6000;
+          const jupiterZ = Math.sin(Math.PI) * 6000 - 200;
+          const jupiterPos = new THREE.Vector3(jupiterX, 0, jupiterZ);
+          
+          const jupiterBaseDistance = Math.max(200, 2 * 100);
+          const jupiterOffset = jupiterBaseDistance;
+          
+          const jupiterTargetPosition = new THREE.Vector3(
+            jupiterPos.x + jupiterOffset * 1.5,
+            jupiterPos.y + jupiterOffset * 1.0,
+            jupiterPos.z + jupiterOffset * 3.0
+          );
+          
+          animateCamera(jupiterTargetPosition, jupiterPos, 4000);
+          break;
+          
+        case 'neptune':
+          const neptuneX = Math.cos(7 * Math.PI / 4) * 8000;
+          const neptuneZ = Math.sin(7 * Math.PI / 4) * 8000 - 200;
+          const neptunePos = new THREE.Vector3(neptuneX, 0, neptuneZ);
+          
+          const neptuneBaseDistance = Math.max(150, 2.5 * 120);
+          const neptuneOffset = neptuneBaseDistance;
+          
+          const neptuneTargetPosition = new THREE.Vector3(
+            neptunePos.x + neptuneOffset * 1.5,
+            neptunePos.y + neptuneOffset * 1.0,
+            neptunePos.z + neptuneOffset * 3.0
+          );
+          
+          animateCamera(neptuneTargetPosition, neptunePos, 3500);
+          break;
+          
+        case 'pluto':
+          const plutoX = Math.cos(2 * Math.PI / 3) * 10000;
+          const plutoZ = Math.sin(2 * Math.PI / 3) * 10000 - 200;
+          const plutoPos = new THREE.Vector3(plutoX, 0, plutoZ);
+          
+          const plutoBaseDistance = Math.max(200, 2 * 150);
+          const plutoOffset = plutoBaseDistance;
+          
+          const plutoTargetPosition = new THREE.Vector3(
+            plutoPos.x + plutoOffset * 1.5,
+            plutoPos.y + plutoOffset * 1.0,
+            plutoPos.z + plutoOffset * 3.0
+          );
+          
+          animateCamera(plutoTargetPosition, plutoPos, 3000);
+          break;
+      }
+      
+      currentIndex++;
+      
+      // Schedule next stop with longer pause for better cinematic effect
+      setTimeout(nextTourStop, 4000 + 1500); // Use consistent 4000ms duration + 1.5 second pause
+    } else {
+      // Tour complete - return to solar system overview
+      console.log('🎬 Cinematic Tour complete! Returning to Solar System overview...');
+      setTimeout(() => {
+        animateCamera(new THREE.Vector3(3000, 2000, 1000), new THREE.Vector3(0, 0, -200), 4000);
+      }, 2000);
+    }
+  }
+  
+  // Start the tour
+  console.log('🎬 Starting Cinematic Solar System Tour!');
+  console.log('📍 Tour route: Sun → Mercury → Venus → Earth → Mars → Jupiter → Neptune → Pluto');
+  console.log('🎯 Using exact individual button camera positioning for each object');
+  nextTourStop();
 }
 
 function createCoordinateMarker(position, label, color = 0xffffff){
@@ -769,6 +1090,13 @@ function animate(){
     viaGalaxy = true;
   }
 
+  // After models are loaded and faded in, automatically move camera closer to Sun
+  if(viaGalaxy && modelsFadeStart > 0 && t > modelsFadeStart + 4 && !window.movedToSun){
+    // Move camera closer to Sun after burst and fade-in complete - much slower transition
+    animateCamera(new THREE.Vector3(0, 0, -100), new THREE.Vector3(0, 0, -200), 8000); // Increased from 2000 to 8000 for much slower movement
+    window.movedToSun = true; // Prevent repeating the movement
+  }
+
   // Handle fade-in effect for models
   if(viaGalaxy && modelsFadeStart > 0){
     const fadeProgress = Math.min((t - modelsFadeStart) / 3, 1); // 3-second fade-in
@@ -807,24 +1135,18 @@ function animate(){
       window.sunLight.intensity = easeInProgress * window.sunLight.userData.targetIntensity;
     }
     
-    // Fade in all planets and add rotation
-    Object.values(planetModels).forEach(planet => {
+    // Fade in all planets and add rotation (except Venus only)
+    Object.keys(planetModels).forEach(planetName => {
+      const planet = planetModels[planetName];
       if(planet){
+        // Rotate all planets except Venus
+        if(planetName !== 'venus') {
+          planet.rotation.y += 0.003; // Planet self-rotation around its own axis
+        }
+        
         planet.traverse((child) => {
           if (child.isMesh) {
-            // Check if this is a ring component
-            const isRing = child.name.toLowerCase().includes('ring') || 
-                          child.material.name.toLowerCase().includes('ring');
-            
-            if (isRing) {
-              // Rings orbit around the planet (slower than planet rotation)
-              child.rotation.y += 0.001; // Slow orbital motion for rings
-            } else {
-              // Planet body rotates on its axis
-              child.rotation.y += 0.003; // Planet self-rotation
-            }
-            
-            // Handle opacity fade-in
+            // Handle opacity fade-in only (rotation handled at planet level)
             if (child.material.userData.targetOpacity) {
               child.material.opacity = easeInProgress * child.material.userData.targetOpacity;
             }
