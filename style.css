@@ -8,3 +8,10 @@ html, body {
 canvas {
   display: block;
 }
+
+/* Ensure left side panels are hidden by default */
+.planets-panel-hidden {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}

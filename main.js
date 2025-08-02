@@ -1,3 +1,4 @@
+// Global variables
 let scene, camera, renderer, composer, controls;
 let explosionParticles, galaxyParticles, starField;
 let blackHoleModel = null;
@@ -8,9 +9,12 @@ let clock = new THREE.Clock();
 let explosionCount = 20000;
 let galaxyCount = 8000;
 let starCount = 15000; // Number of background stars
+
+// Ensure left panel is hidden by default
+let planetsListPanel = null; // Initialize as null to ensure it's hidden
+let infoPanel = null; // Initialize as null to ensure it's hidden
 let viaGalaxy = false;
 let currentPlanet = null;
-let infoPanel = null;
 let typewriterInterval = null;
 
 // Planet information data
@@ -116,6 +120,12 @@ function init(){
   createExplosion();
   createStarField(); // Add background stars immediately
   createNavigationUI();
+  
+  // Hide the left navigation panel from start
+  setTimeout(() => {
+    hideLeftNavigation();
+  }, 100); // Small delay to ensure DOM is ready
+  
   window.addEventListener('resize', onResize);
 }
 
@@ -1693,15 +1703,15 @@ function createTopNavbar() {
   navbar.style.top = '20px';
   navbar.style.right = '20px';
   navbar.style.zIndex = '10001';
-  navbar.style.display = 'none'; // Start hidden
+  navbar.style.display = 'flex'; // Make visible from start
   navbar.style.gap = '15px';
   navbar.style.padding = '10px 20px';
   navbar.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'; // Transparent background
   navbar.style.border = '1px solid rgba(255, 255, 255, 0.5)'; // Thin white border
   navbar.style.borderRadius = '25px';
   navbar.style.backdropFilter = 'blur(10px)';
-  navbar.style.opacity = '0'; // Start invisible for animation
-  navbar.style.transform = 'translateY(-20px) scale(0.9)'; // Start above and smaller
+  navbar.style.opacity = '1'; // Fully visible from start
+  navbar.style.transform = 'translateY(0) scale(1)'; // Normal position and size
   navbar.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)'; // Smooth spring animation
   
   // Hamburger toggle button
@@ -1716,20 +1726,22 @@ function createTopNavbar() {
   hamburger.style.fontSize = '16px';
   hamburger.style.fontFamily = 'Astronoma, Arial, sans-serif';
   hamburger.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; // Smooth animation
-  hamburger.style.display = 'none'; // Start hidden
-  hamburger.style.opacity = '0'; // Start invisible
+  hamburger.style.display = 'block'; // Make visible
+  hamburger.style.opacity = '1'; // Fully visible
   hamburger.style.transform = 'scale(0.8)'; // Start smaller
   
-  // Menu container (initially visible)
+  // Menu container (initially hidden)
   const menuContainer = document.createElement('div');
-  menuContainer.style.display = 'flex';
+  menuContainer.style.display = 'none'; // Hide initially
   menuContainer.style.gap = '10px';
   menuContainer.style.alignItems = 'center';
   menuContainer.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'; // Smooth animation
+  menuContainer.style.opacity = '0';
+  menuContainer.style.transform = 'translateY(-10px)';
   
   const menuItems = [
     { text: 'Tour', action: () => startCinematicTour() },
-    { text: 'Planets', action: () => togglePlanetsList() },
+    { text: 'Planets', action: () => showLeftNavigation() }, // Change to show left panel
     { text: 'About', action: () => toggleAboutSection() }
   ];
   
@@ -1763,6 +1775,14 @@ function createTopNavbar() {
     menuBtn.onclick = () => {
       // Add click animation
       menuBtn.style.transform = 'scale(0.95)';
+      
+      // Hide the menu first
+      menuContainer.style.opacity = '0';
+      menuContainer.style.transform = 'translateY(-10px)';
+      setTimeout(() => {
+        menuContainer.style.display = 'none';
+      }, 300);
+      
       setTimeout(() => {
         item.action();
         menuBtn.style.transform = 'scale(1)';
@@ -1786,7 +1806,26 @@ function createTopNavbar() {
   };
   
   // Hamburger click handler
-  hamburger.onclick = () => toggleLeftNavigation();
+  hamburger.onclick = () => toggleNavMenu();
+  
+  // Function to toggle navigation menu
+  function toggleNavMenu() {
+    if (menuContainer.style.display === 'none' || menuContainer.style.display === '') {
+      // Show menu
+      menuContainer.style.display = 'flex';
+      setTimeout(() => {
+        menuContainer.style.opacity = '1';
+        menuContainer.style.transform = 'translateY(0)';
+      }, 50);
+    } else {
+      // Hide menu
+      menuContainer.style.opacity = '0';
+      menuContainer.style.transform = 'translateY(-10px)';
+      setTimeout(() => {
+        menuContainer.style.display = 'none';
+      }, 300);
+    }
+  }
   
   navbar.appendChild(hamburger);
   navbar.appendChild(menuContainer);
@@ -1884,7 +1923,6 @@ function hideSpaceWalkText() {
 }
 
 // Planets list functionality
-let planetsListPanel = null;
 
 function togglePlanetsList() {
   if (planetsListPanel && document.body.contains(planetsListPanel)) {
@@ -2290,20 +2328,77 @@ function showAboutSection() {
     </div>
     
     <div style="margin-bottom: 30px;">
-      <h3 style="color: #FFB74D; font-size: 24px; margin-bottom: 15px;">Our Team</h3>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
-        <div style="background: rgba(0,0,0,0); border: 1px solid rgba(255,255,255,0.3); border-radius: 15px; padding: 20px; text-align: center;">
-          <h4 style="color: #4FC3F7; margin-bottom: 10px;">Lead Developer</h4>
-          <p style="font-size: 14px; line-height: 1.6;">Responsible for the core 3D engine, particle systems, and interactive navigation features.</p>
+      <h3 style="color: #FFB74D; font-size: 24px; margin-bottom: 15px; text-align: center;">Our Team</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; margin-top: 20px;">
+        
+        <!-- Dashrath -->
+        <div style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 25px; text-align: center; transition: all 0.3s ease;">
+          <img src="pro/img1.jpg" alt="Dashrath" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; border: 3px solid #4FC3F7; box-shadow: 0 0 20px rgba(79, 195, 247, 0.3);">
+          <h4 style="color: #4FC3F7; margin-bottom: 8px; font-size: 20px;">Dashrath</h4>
+          <p style="color: #81C784; font-size: 14px; margin-bottom: 15px; font-weight: 500;">Lead Developer & Co-Founder</p>
+          <p style="font-size: 13px; line-height: 1.5; margin-bottom: 20px; color: rgba(255,255,255,0.8);">
+            Passionate full-stack developer specializing in 3D web experiences, Three.js, and interactive animations. 
+            Brings space exploration to life through cutting-edge web technologies.
+          </p>
+          <div style="display: flex; justify-content: center; gap: 15px;">
+            <a href="https://github.com/ErDashrath" target="_blank" style="color: #4FC3F7; text-decoration: none; transition: all 0.3s ease;" 
+               onmouseover="this.style.color='#81C784'; this.style.transform='scale(1.2)'" 
+               onmouseout="this.style.color='#4FC3F7'; this.style.transform='scale(1)'">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+            </a>
+            <a href="https://linkedin.com/in/erdashrath" target="_blank" style="color: #4FC3F7; text-decoration: none; transition: all 0.3s ease;" 
+               onmouseover="this.style.color='#81C784'; this.style.transform='scale(1.2)'" 
+               onmouseout="this.style.color='#4FC3F7'; this.style.transform='scale(1)'">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+            </a>
+            <a href="https://twitter.com/erdashrath" target="_blank" style="color: #4FC3F7; text-decoration: none; transition: all 0.3s ease;" 
+               onmouseover="this.style.color='#81C784'; this.style.transform='scale(1.2)'" 
+               onmouseout="this.style.color='#4FC3F7'; this.style.transform='scale(1)'">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+              </svg>
+            </a>
+          </div>
         </div>
-        <div style="background: rgba(0,0,0,0); border: 1px solid rgba(255,255,255,0.3); border-radius: 15px; padding: 20px; text-align: center;">
-          <h4 style="color: #81C784; margin-bottom: 10px;">Content Specialist</h4>
-          <p style="font-size: 14px; line-height: 1.6;">Curates accurate astronomical data and educational content for each planet.</p>
+
+        <!-- Ritesh -->
+        <div style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 25px; text-align: center; transition: all 0.3s ease;">
+          <img src="pro/img2.jpg" alt="Ritesh" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; border: 3px solid #81C784; box-shadow: 0 0 20px rgba(129, 199, 132, 0.3);">
+          <h4 style="color: #81C784; margin-bottom: 8px; font-size: 20px;">Ritesh</h4>
+          <p style="color: #FFB74D; font-size: 14px; margin-bottom: 15px; font-weight: 500;">Creative Director & Co-Founder</p>
+          <p style="font-size: 13px; line-height: 1.5; margin-bottom: 20px; color: rgba(255,255,255,0.8);">
+            Visionary designer and creative technologist focused on user experience, 3D graphics, and making 
+            complex astronomical concepts accessible through intuitive design.
+          </p>
+          <div style="display: flex; justify-content: center; gap: 15px;">
+            <a href="https://github.com/ritesh" target="_blank" style="color: #81C784; text-decoration: none; transition: all 0.3s ease;" 
+               onmouseover="this.style.color='#FFB74D'; this.style.transform='scale(1.2)'" 
+               onmouseout="this.style.color='#81C784'; this.style.transform='scale(1)'">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+            </a>
+            <a href="https://linkedin.com/in/ritesh" target="_blank" style="color: #81C784; text-decoration: none; transition: all 0.3s ease;" 
+               onmouseover="this.style.color='#FFB74D'; this.style.transform='scale(1.2)'" 
+               onmouseout="this.style.color='#81C784'; this.style.transform='scale(1)'">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+            </a>
+            <a href="https://twitter.com/ritesh" target="_blank" style="color: #81C784; text-decoration: none; transition: all 0.3s ease;" 
+               onmouseover="this.style.color='#FFB74D'; this.style.transform='scale(1.2)'" 
+               onmouseout="this.style.color='#81C784'; this.style.transform='scale(1)'">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+              </svg>
+            </a>
+          </div>
         </div>
-        <div style="background: rgba(0,0,0,0); border: 1px solid rgba(255,255,255,0.3); border-radius: 15px; padding: 20px; text-align: center;">
-          <h4 style="color: #FFB74D; margin-bottom: 10px;">UI/UX Designer</h4>
-          <p style="font-size: 14px; line-height: 1.6;">Designs the intuitive interface and seamless user experience throughout the journey.</p>
-        </div>
+        
       </div>
     </div>
     
