@@ -1705,15 +1705,15 @@ function createTopNavbar() {
   navbar.style.top = '20px';
   navbar.style.right = '20px';
   navbar.style.zIndex = '10001';
-  navbar.style.display = 'flex'; // Make visible from start
+  navbar.style.display = 'none'; // Hidden by default - only show after dive button clicked
   navbar.style.gap = '15px';
   navbar.style.padding = '10px 20px';
   navbar.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'; // Transparent background
   navbar.style.border = '1px solid rgba(255, 255, 255, 0.5)'; // Thin white border
   navbar.style.borderRadius = '25px';
   navbar.style.backdropFilter = 'blur(10px)';
-  navbar.style.opacity = '1'; // Fully visible from start
-  navbar.style.transform = 'translateY(0) scale(1)'; // Normal position and size
+  navbar.style.opacity = '0'; // Start invisible
+  navbar.style.transform = 'translateY(-20px) scale(0.9)'; // Start slightly up and smaller
   navbar.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)'; // Smooth spring animation
   
   // Hamburger toggle button
