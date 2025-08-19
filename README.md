@@ -1,5 +1,5 @@
 # 🌌 SPACEWALK
-
+*Due to 3d rendering your browser may take a little time to load the models so please wait ,thank you*
 *SPACEWALK* is an interactive 3D space visualization experience that allows you to explore the wonders of the universe right from your browser.  
 It combines realistic 3D models, smooth animations, and immersive transitions to create an educational and visually stunning space journey.
 
