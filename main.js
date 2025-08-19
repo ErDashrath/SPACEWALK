@@ -315,8 +315,8 @@ function loadModel(){
       scene.add(blackHoleModel);
       console.log("Black hole model loaded successfully!");
       
-      // Add coordinate marker for black hole
-      createCoordinateMarker(blackHoleModel.position, 'Black Hole\n(2000, 800, -1500)', 0x800080);
+      // Add coordinate marker for black hole (name only)
+      createCoordinateMarker(blackHoleModel.position, 'Black Hole', 0x800080);
     },
     (progress) => {
       console.log('Loading progress:', (progress.loaded / progress.total * 100) + '%');
@@ -372,7 +372,7 @@ function loadSunModel(){
       createSunGlow();
       
       // Add coordinate marker for sun 
-      createCoordinateMarker(sunModel.position, 'Sun\n(0, 0, -200)', 0xffaa00);
+      createCoordinateMarker(sunModel.position, 'Sun', 0xffaa00);
       
     },
     (progress) => {
@@ -544,10 +544,10 @@ function loadPlanets(){
         scene.add(planetModel);
         planetModels[planetName] = planetModel;
         
-        // Add coordinate marker
+        // Add coordinate marker (name only, no coordinates)
         createCoordinateMarker(
           planetModel.position, 
-          `${planetName.charAt(0).toUpperCase() + planetName.slice(1)}\n(${Math.round(x)}, 0, ${Math.round(z)})`, 
+          `${planetName.charAt(0).toUpperCase() + planetName.slice(1)}`, 
           planet.color
         );
         
@@ -760,10 +760,16 @@ function createNavigationUI(){
     startCinematicTour();
   });
   
+  // Hide/Show Planets button
+  const hidePlanetsBtn = createNavButton('👁️ Toggle Planets', () => {
+    togglePlanets();
+  });
+  
   navContainer.appendChild(centerBtn);
   navContainer.appendChild(sunBtn);
   navContainer.appendChild(blackHoleBtn);
   navContainer.appendChild(tourBtn);
+  navContainer.appendChild(hidePlanetsBtn);
   navContainer.appendChild(mercuryBtn);
   navContainer.appendChild(venusBtn);
   navContainer.appendChild(earthBtn);
@@ -872,16 +878,15 @@ function ultraCloseUp(objectPosition, objectScale = 1, duration = 2500) {
   animateCamera(targetPosition, targetLookAt, duration);
 }
 
-// Cinematic tour function - follows solar system order from Sun outward with exact individual button positioning
+// Cinematic tour function - follows solar system order starting from Mercury (closest to Sun)
 function startCinematicTour() {
+  // Hide the planets list panel when tour starts
+  hidePlanetsList();
+  
   const tourSequence = [
     { 
-      name: 'Sun', 
-      buttonType: 'sun' // Use exact Sun button logic
-    },
-    { 
       name: 'Mercury', 
-      buttonType: 'mercury' // Use exact Mercury button logic
+      buttonType: 'mercury' // Start with Mercury - closest planet to Sun
     },
     { 
       name: 'Venus', 
@@ -906,6 +911,10 @@ function startCinematicTour() {
     { 
       name: 'Pluto', 
       buttonType: 'pluto' // Use exact Pluto button logic
+    },
+    { 
+      name: 'Sun', 
+      buttonType: 'sun' // End with Sun for dramatic finale
     }
   ];
   
@@ -914,7 +923,7 @@ function startCinematicTour() {
   function nextTourStop() {
     if (currentIndex < tourSequence.length) {
       const stop = tourSequence[currentIndex];
-      console.log(`🎬 Tour: Visiting ${stop.name} (${currentIndex + 1}/${tourSequence.length})`);
+      console.log(`🎬 Tour: Visiting ${stop.name} (${currentIndex + 1}/${tourSequence.length}) - 30-second stop`);
       
       // Execute the exact same logic as individual planet buttons
       switch(stop.buttonType) {
@@ -1048,11 +1057,18 @@ function startCinematicTour() {
       
       currentIndex++;
       
-      // Schedule next stop with longer pause for better cinematic effect
-      setTimeout(nextTourStop, 4000 + 1500); // Use consistent 4000ms duration + 1.5 second pause
+      // Calculate animation time based on planet type for smooth performance
+      const animationTime = stop.buttonType === 'jupiter' ? 4000 : 
+                           (stop.buttonType === 'venus' || stop.buttonType === 'earth' || stop.buttonType === 'mars') ? 3000 :
+                           (stop.buttonType === 'neptune' || stop.buttonType === 'pluto') ? 3500 : 
+                           stop.buttonType === 'sun' ? 3000 : 2500;
+      
+      // Schedule next stop with 30-second viewing time 
+      setTimeout(nextTourStop, animationTime + 30000); // Animation time + exactly 30 seconds viewing
     } else {
       // Tour complete - return to solar system overview
       console.log('🎬 Cinematic Tour complete! Returning to Solar System overview...');
+      console.log('📋 Side panel can now be accessed again from the navigation menu');
       setTimeout(() => {
         animateCamera(new THREE.Vector3(3000, 2000, 1000), new THREE.Vector3(0, 0, -200), 4000);
       }, 2000);
@@ -1060,9 +1076,10 @@ function startCinematicTour() {
   }
   
   // Start the tour
-  console.log('🎬 Starting Cinematic Solar System Tour!');
-  console.log('📍 Tour route: Sun → Mercury → Venus → Earth → Mars → Jupiter → Neptune → Pluto');
-  console.log('🎯 Using exact individual button camera positioning for each object');
+  console.log('🎬 Starting Cinematic Solar System Tour from Mercury!');
+  console.log('📍 Tour route: Mercury → Venus → Earth → Mars → Jupiter → Neptune → Pluto → Sun');
+  console.log('⏰ Each planet: 30-second viewing stop');
+  console.log('🚀 Side panel hidden during tour for immersive experience');
   nextTourStop();
 }
 
@@ -1084,16 +1101,18 @@ function createCoordinateMarker(position, label, color = 0xffffff){
   labelDiv.textContent = label;
   labelDiv.style.position = 'absolute';
   labelDiv.style.color = `#${color.toString(16).padStart(6, '0')}`;
-  labelDiv.style.fontSize = '12px';
-  labelDiv.style.fontFamily = 'Arial, sans-serif';
-  labelDiv.style.background = 'rgba(0, 0, 0, 0.7)';
-  labelDiv.style.padding = '4px 8px';
-  labelDiv.style.borderRadius = '4px';
-  labelDiv.style.border = `1px solid #${color.toString(16).padStart(6, '0')}`;
+  labelDiv.style.fontSize = '16px'; // Increased from 12px for better visibility
+  labelDiv.style.fontFamily = 'Astronoma, Arial, sans-serif'; // Use same font as SPACEWALK
+  labelDiv.style.fontWeight = 'bold'; // Make font solid and bold
+  labelDiv.style.background = 'none'; // Remove background box
+  labelDiv.style.padding = '0'; // Remove padding
+  labelDiv.style.borderRadius = '0'; // Remove border radius
+  labelDiv.style.border = 'none'; // Remove border completely
   labelDiv.style.pointerEvents = 'none';
   labelDiv.style.whiteSpace = 'pre-line';
   labelDiv.style.textAlign = 'center';
   labelDiv.style.zIndex = '999';
+  labelDiv.style.textShadow = 'none'; // Remove any text shadow for solid look
   
   document.body.appendChild(labelDiv);
   
@@ -1297,14 +1316,16 @@ function createCoordinateMarker(position, label, color = 0xffffff){
   labelDiv.style.color = `#${color.toString(16).padStart(6, '0')}`;
   labelDiv.style.fontSize = '24px'; // Larger font size
   labelDiv.style.fontFamily = 'Astronoma, Arial, sans-serif'; // Use Astronoma font
-  labelDiv.style.background = 'rgba(0, 0, 0, 0.7)';
-  labelDiv.style.padding = '8px 16px';
-  labelDiv.style.borderRadius = '4px';
-  labelDiv.style.border = `1px solid #${color.toString(16).padStart(6, '0')}`;
+  labelDiv.style.fontWeight = 'bold'; // Make font solid and bold
+  labelDiv.style.background = 'none'; // Remove background box
+  labelDiv.style.padding = '0'; // Remove padding
+  labelDiv.style.borderRadius = '0'; // Remove border radius
+  labelDiv.style.border = 'none'; // Remove border completely
   labelDiv.style.pointerEvents = 'none';
   labelDiv.style.whiteSpace = 'pre-line';
   labelDiv.style.textAlign = 'center';
   labelDiv.style.zIndex = '999';
+  labelDiv.style.textShadow = 'none'; // Remove any text shadow for solid look
   
   document.body.appendChild(labelDiv);
   
@@ -1375,6 +1396,90 @@ function showCoordinateMarkers() {
   }
 }
 
+// Function to hide all planets
+function hidePlanets() {
+  // Hide planet models
+  Object.keys(planetModels).forEach(planetName => {
+    const planet = planetModels[planetName];
+    if (planet) {
+      planet.visible = false;
+    }
+  });
+  
+  // Hide sun model
+  if (sunModel) {
+    sunModel.visible = false;
+  }
+  
+  // Hide sun glow
+  if (window.sunGlow) {
+    window.sunGlow.visible = false;
+  }
+  
+  // Hide black hole model
+  if (blackHoleModel) {
+    blackHoleModel.visible = false;
+  }
+  
+  // Hide coordinate markers
+  hideCoordinateMarkers();
+  
+  console.log('🙈 All planets and celestial objects hidden');
+}
+
+// Function to show all planets
+function showPlanets() {
+  // Show planet models
+  Object.keys(planetModels).forEach(planetName => {
+    const planet = planetModels[planetName];
+    if (planet) {
+      planet.visible = true;
+    }
+  });
+  
+  // Show sun model
+  if (sunModel) {
+    sunModel.visible = true;
+  }
+  
+  // Show sun glow
+  if (window.sunGlow) {
+    window.sunGlow.visible = true;
+  }
+  
+  // Show black hole model
+  if (blackHoleModel) {
+    blackHoleModel.visible = true;
+  }
+  
+  console.log('👁️ All planets and celestial objects shown');
+}
+
+// Toggle planet visibility
+function togglePlanets() {
+  // Check if planets are currently visible by checking the first available planet
+  let planetsVisible = false;
+  
+  // Check sun first
+  if (sunModel && sunModel.visible) {
+    planetsVisible = true;
+  } else {
+    // Check any planet
+    Object.keys(planetModels).forEach(planetName => {
+      const planet = planetModels[planetName];
+      if (planet && planet.visible) {
+        planetsVisible = true;
+      }
+    });
+  }
+  
+  if (planetsVisible) {
+    hidePlanets();
+  } else {
+    showPlanets();
+  }
+}
+
 // Create animated SPACEWALK text that flies in from random sides  
 function createSpaceWalkTextAnimation() {
   // Preload the font
@@ -1389,7 +1494,7 @@ function createSpaceWalkTextAnimation() {
       const letterDiv = document.createElement('div');
       letterDiv.textContent = letter;
       letterDiv.style.position = 'fixed';
-      letterDiv.style.fontSize = '120px'; // Increased back to 120px for bigger letters
+      letterDiv.style.fontSize = '140px'; // Increased back to 120px for bigger letters
       letterDiv.style.fontWeight = 'bold';
       letterDiv.style.color = 'white';
       letterDiv.style.fontFamily = 'Astronoma, Arial, sans-serif';
@@ -1546,12 +1651,13 @@ function showPlanetInfo(planetName) {
   // Create info panel with navbar-style design but larger for content
   infoPanel = document.createElement('div');
   infoPanel.style.position = 'fixed';
-  infoPanel.style.top = '50%';
-  infoPanel.style.right = '30px'; // Right side positioning
-  infoPanel.style.transform = 'translateY(-50%)'; // Center vertically
-  infoPanel.style.width = '350px'; // Larger width for content
-  infoPanel.style.maxHeight = '80vh'; // Max height for scrolling
-  infoPanel.style.overflowY = 'auto'; // Enable scrolling if needed
+  infoPanel.style.top = '10px'; // Move closer to top for more space
+  infoPanel.style.right = '10px'; // Closer to edge for more space
+  infoPanel.style.transform = 'none'; // Remove center transform for full height
+  infoPanel.style.width = '400px'; // Increased width from 350px
+  infoPanel.style.height = 'calc(100vh - 20px)'; // Full height minus margins
+  infoPanel.style.maxHeight = 'none'; // Remove max height restriction
+  infoPanel.style.overflowY = 'scroll'; // Always show scrollbar for consistency
   infoPanel.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'; // Match navbar transparency
   infoPanel.style.border = '1px solid rgba(255, 255, 255, 0.5)'; // Match navbar border
   infoPanel.style.borderRadius = '25px'; // Match navbar circular corners
@@ -1643,12 +1749,12 @@ function showPlanetInfo(planetName) {
   comparisonSection.appendChild(comparisonText);
   infoPanel.appendChild(comparisonSection);
   
-  // Close button with navbar-style design
+  // Close button with navbar-style design - positioned to avoid navbar overlap
   const closeButton = document.createElement('button');
   closeButton.textContent = '✕';
   closeButton.style.position = 'absolute';
   closeButton.style.top = '15px';
-  closeButton.style.right = '15px';
+  closeButton.style.left = '15px'; // Changed from right to left to avoid navbar overlap
   closeButton.style.background = 'transparent';
   closeButton.style.border = '1px solid rgba(255, 255, 255, 0.3)'; // Match navbar border style
   closeButton.style.borderRadius = '15px'; // Match navbar button radius
@@ -2416,12 +2522,12 @@ function showAboutSection() {
     </div>
   `;
   
-  // Close button
+  // Close button - positioned to avoid navbar overlap
   const closeBtn = document.createElement('button');
   closeBtn.innerHTML = '✕';
   closeBtn.style.position = 'absolute';
   closeBtn.style.top = '20px';
-  closeBtn.style.right = '20px';
+  closeBtn.style.left = '20px'; // Changed from right to left to avoid navbar overlap
   closeBtn.style.background = 'transparent';
   closeBtn.style.border = '1px solid rgba(255, 255, 255, 0.3)';
   closeBtn.style.borderRadius = '15px';
